@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title></title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <!-- favicon shit -->
+    <link rel="apple-touch-icon" sizes="57x57" href="public/favicons/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="public/favicons/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="public/favicons/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="public/favicons/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="public/favicons/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="public/favicons/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="public/favicons/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="public/favicons/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="public/favicons/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="public/favicons/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="public/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="public/favicons/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="public/favicons/favicon-16x16.png">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="public/favicons/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+</head>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<body>
+
+    <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <div class="navContent">
+            <div class="linkSpotify">
+                Please link your spotify to use this feature!
+            </div>
+        </div>
+      </div>
+
+    
+
+    <div class="lds-default" id="loader"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+    <div id="player" class="videoBackground" allow="autoplay"></div>
+
+
+    <div class="backgroundImage" id="backgroundImage"></div>
+
+    <div id="fullscreen" class="fullscreenBTN" onclick="hide()">
+            
+        <img src="public/assets/fullscreen.svg" width="25" height="25"></img>
+
+    </div>
+
+    <div class="dropdown hide">
+        <button class="dropbtn">Spotify Playlists</button>
+        <div class="dropdown-content" id="spotifyPlaylist">
+        </div>
+      </div>
+
+    <div class="header2 hide">
+        <span class="navOpenBtn" onclick="openNav()">&#9776;</span>
+        <img id="pfp" src="" alt="Profile Picture">
+        <span id="name">NAME</span>
+        <br />
+        <span id="vc"></span>
+        <object id="mute" data="public/assets/mute.svg" width="20" height="20"></object>
+        <object id="unmute" data="public/assets/unmute.svg" width="20" height="20"></object>
+        <object id="deaf" data="public/assets/deaf.svg" width="20" height="20"></object>
+        <object id="undeaf" data="public/assets/undeaf.svg" width="20" height="20"></object>
+    </div>
+
+    <div class="header hide">
+        <a onclick="follow()" style="text-decoration: none;" title="Follow">
+            <div class="logout-box followbtn">
+                <span id="following">Follow</span>
+            </div>
+        </a>
+        
+        <a onclick="clearQueue()" style="text-decoration: none;" title="Change servers">
+            <div class="logout-box clearQueue">
+                <span>Clear Queue</span>
+            </div>
+        </a>
+
+        <a style="text-decoration: none;" title="Sync the currently playing video" onclick="sync()"">
+            <div id="logout" class="logout-box syncbtn">
+                <span>Sync Video</span>
+            </div>
+        </a>
+
+        <a onclick="openServerSelect()" style="text-decoration: none;" title="Change servers">
+            <div class="logout-box">
+                <span id="serverbtn">Servers</span>
+            </div>
+        </a>
+
+        <a onclick="switchColor(true)" style="text-decoration: none;"
+            title="Switch between random colours & discord color">
+            <div class="logout-box">
+                <span>Colour</span>
+            </div>
+        </a>
+
+        <a href="/logout" style="text-decoration: none;" title="Logout and change your account">
+            <div id="logout" class="logout-box">
+                <span>Log out</span>
+            </div>
+        </a>
+
+        <div class="somekindofbar behindBar frontBar" id="progBehind"></div>
+        <div class="somekindofbar" style="pointer-events: none" id="prog"></div>
+    </div>
+
+    <div class="nowplayingcontainer hide" id="nowplayingcontainer">
+        <div class="playSongs results custom-color" id="results"></div>
+        <input placeholder="Search for a song!" class="playSongs" type="text" id="play" name="play"><button
+            class="switchPlatformButton" id="switchPlatformBTN" type="button" onclick="switchPlatform()">Spotify</button>
+    </div>
+
+    <div class="songQueueWrap hide">
+        <input placeholder="Search The Current Queue!" class="searchSongs" type="text" id="search" name="search">
+        <div class="songQueue custom-color" id="songQueue">
+        </div>
+    </div>
+
+    <div id="serverSelect" class="overlay">
+        <div class="modal">
+            <div id="servers">
+
+            </div>
+        </div>
+    </div>
+
+    <div id="disconnect" class="overlay">
+        <div class="modal">
+            <div style="text-align: center; color:red">
+                <h1>CLIENT HAS BEEN DISCONNECTED!</h1>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<script src="index.js"></script>
+
+</html>
