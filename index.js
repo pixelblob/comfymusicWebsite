@@ -291,6 +291,7 @@ fetch('/api/voiceState?guild=' + getCookie("server").id)
     }
 
 socket.on('voiceUpdate', function (data) {
+    var vcDisplay = document.getElementById("vc")
     if (data.channel) {
         getChannel(data.channel, getCookie("server").id).then(data=>{
             vcDisplay.textContent = `#${data.name}`
