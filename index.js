@@ -199,16 +199,6 @@ function search(altSearch) {
                 }
             }
 
-            /* document.onmousedown = function handler(e) {
-                if (e.target == document.getElementById("play") || e.target.parentElement.id == "results") return;
-                document.getElementById("play").value = ""
-                document.getElementById("play").blur()
-                while (results.firstChild) {
-                    results.removeChild(results.lastChild);
-                }
-                document.onmousedown = ''
-            } */
-
             document.getElementById("play").onkeydown = function (e) {
                 if (e.keyCode != 13) return;
                 searching = true
