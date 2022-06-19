@@ -9,6 +9,10 @@ body {
   transition: margin-left .5s;
 }
 
+body.waiting * {
+    cursor: progress;
+}
+
 .dragging {
 	background-color: blueviolet !important;
 	height: 20px;
@@ -47,11 +51,6 @@ body {
 width: 100%
 }
 
-
-
-#backgroundImage {
-  
-}
 
 .backgroundImage {
 	/* Add the blur effect */
@@ -137,9 +136,6 @@ width: 100%
 	transition: width 1.5s linear;
 }
 
-.header2>object {
-	display: none;
-}
 
 .navOpenBtn {
 	font-size:30px;
@@ -543,14 +539,6 @@ a:visited {
 	background-color: rgb(197, 0, 0);
 }
 
-.nowplayingcontainer {
-  width: 45vw;
-  position: absolute;
-  bottom: 0px;
-  left: 50vw;
-  transform: translate(-50%);
-}
-
 .playSongs {
 	width: 100%;
 	min-height: 20px;
@@ -604,6 +592,81 @@ input.playSongs {
 	border-color: aquamarine;
 	position: relative;
 	margin-left: 60px;
+}
+
+@keyframes append-animate {
+	from {
+		transform: translateX(-100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0%);
+		opacity: 1;
+	}
+}
+
+#servers > div {
+	transform: translateX(-100%);
+	animation: append-animate 0.1s ease;
+	animation-fill-mode: forwards;
+}
+
+.header2 {
+	transform: translateX(-100%);
+	animation: append-animate 0.3s ease;
+	animation-fill-mode: forwards;
+}
+
+@keyframes append-animateX {
+	from {
+		transform: translateX(100%);
+	}
+	to {
+		transform: translateX(0%);
+	}
+}
+
+.dropdown {
+	transform: translateX(100%);
+	animation: append-animateX 1s ease;
+	animation-fill-mode: forwards;
+}
+
+.header {
+	transform: translateX(100%);
+	animation: append-animateX 1s ease;
+	animation-fill-mode: forwards;
+}
+
+
+@keyframes append-animateY {
+	from {
+		transform: translateY(100%);
+	}
+	to {
+		transform: translateY(0%);
+	}
+}
+
+.songQueueWrap {
+	transform: translateY(100%);
+	animation: append-animateY 1s ease;
+	animation-fill-mode: forwards;
+}
+
+.nowplayingcontainer {
+	transform: translateY(100%);
+	animation: append-animateY 1s ease;
+	animation-fill-mode: forwards;
+	width: 45vw; position: absolute; bottom: 0px; left:0;
+    right:0;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+#disconnect {
+	display: none
 }
 
 .navContent {

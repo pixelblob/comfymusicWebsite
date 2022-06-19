@@ -39,7 +39,7 @@ let socket = new io.connect({
     'reconnectionDelayMax': 5000,
     'reconnectionAttempts': 9000000
 });
-switchColor(false)
+//switchColor(false)
 
 function switchColor(change) {
     let randomNum = getCookie("color") || getRandomArbitrary(0.2, 0.8)
@@ -68,6 +68,11 @@ if (getCookie("server")) {
 }
 
 function populateUserInfo() {
+    var details = getCookie("userDetails")
+    document.title = `${details.username}#${details.discriminator}`
+    document.getElementById("name").textContent = `${details.username}#${details.discriminator}`
+    document.getElementById("pfp").src = `https://cdn.discordapp.com/avatars/${details.id}/${details.avatar}.png`
+    document.getElementById("name").parentElement.style.display = "block"
     fetch('/api/userDetails')
         .then(response => response.json())
         .then(data => {
@@ -139,31 +144,16 @@ function switchPlatform() {
     }
 }
 
-let songdiv
-document.getElementById("search").oninput = function (event) {
-    let songQueue = document.getElementById("songQueue")
-    songdiv?.classList?.remove("currentSearch")
-    songdiv = Array.from(songQueue.children).find(c => Array.from(c.children).find(c => c.tagName == "A" && c.innerText.toLowerCase().startsWith(document.getElementById("search").value.toLowerCase().trim()))) || Array.from(songQueue.children).find(c => Array.from(c.children).find(c => c.tagName == "A" && c.innerText.toLowerCase().trim().includes(document.getElementById("search").value.toLowerCase().trim())))
-    console.log(songdiv || "Cant find search thing")
-    if (!songdiv || document.getElementById("search").value.trim() == "") {
-        songdiv = document.getElementsByClassName("currentSong")[0]
-    } else {
-        songdiv.classList.add("currentSearch")
-    }
-    let topPos = songdiv.offsetTop;
-    let height = songQueue.clientHeight
-    let divheight = songdiv.clientHeight
-    height = height / 2
-    songQueue.scrollTop = topPos - height + divheight / 2;
-    songQueue.onscroll
-}
+
 
 function follow() {
+    Loader(true)
     fetch("/api/follow?guild=" + getCookie("server").id, {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
     }).then(response => response.json()).then(data => {
         console.log(data)
+        Loader(false)
     })
 }
 
@@ -268,6 +258,7 @@ fetch('/api/voiceState?guild=' + getCookie("server").id)
     })
 
     function setVoiceState({mute, deafen}) {
+        console.log("SET VOICE STATE!")
         document.getElementById("mute").style.display = mute ? "none" : "inline-block"
         document.getElementById("unmute").style.display = mute ? "inline-block" : "none"
         document.getElementById("deaf").style.display = deafen ? "none" : "inline-block"
@@ -300,18 +291,22 @@ var X
 var Y
 function Loader(visible) {
     if (visible) {
-        loader.style.display = "inline-block"
+       // loader.style.display = "inline-block"
+        document.body.classList.add('waiting')
+
     } else {
-        loader.style.display = "none"
+        //loader.style.display = "none"
+        document.body.classList.remove('waiting')
+        document.body.style.cursor = 'default'
     }
 }
 
-var loader = document.getElementById("loader")
+/* var loader = document.getElementById("loader")
 document.addEventListener('mousemove', e => {
     //if (loader.style.display == "none" || !loader.style.display) return;
     loader.style.left = (e.pageX - (loader.clientWidth/2)) + 'px';
   loader.style.top = (e.pageY - (loader.clientHeight/2)) + 'px'
-})
+}) */
 
 function hide() {
     console.log(document.getElementsByClassName("hide"))
@@ -352,7 +347,7 @@ socket.on('queueUpdate', function (data) {
 
     console.log(data)
 
-    document.getElementById("following").textContent = data?.following?.nickname || data?.following?.displayName || "Following"
+    document.getElementById("following").textContent = data?.following?.nickname || data?.following?.displayName || "Follow"
 
     if (!data.queue) {
         console.log("Nothing in queue!")
@@ -408,77 +403,85 @@ socket.on('queueUpdate', function (data) {
                 fetch('/api/progress?guild=' + getCookie("server").id).then(response => response.json())
                 .then(data => {
 
-                    if (player != null) {
-                        if (id == oldId) return;
-                        var oldId = id
-                        console.log("DESTROYING PLAYER!")
-                        player.destroy();
-                        player = null;
+                    createPlayer()
+
+                    function createPlayer() {
+
+                        document.onvisibilitychange = function (event) {
+                            if (document.hidden) {
+                                console.log('not visible');
+    
+                                if (player != null) {
+                                    if (id == oldId) return;
+                                    var oldId = id
+                                    console.log("DESTROYING PLAYER!")
+                                    player.destroy();
+                                    player = null;
+                                }
+    
+                            } else {
+                                console.log('is visible');
+                                createPlayer()
+                            }
+                        };
+    
+                        if (player != null) {
+                            if (id == oldId) return;
+                            var oldId = id
+                            console.log("DESTROYING PLAYER!")
+                            player.destroy();
+                            player = null;
+                        }
+                        console.log("TIME"+Math.round(data.progress/1000))
+                    player = new YT.Player('player', {
+                        height: '100%',
+                        width: '100%',
+                        videoId: id,
+                        playerVars: {
+                            'playsinline': 1,
+                            'mute': 1,
+                            'enablejsapi': 1,
+                            'disablekb': 1,
+                            'controls': 0,
+                            'start':Math.round(data.progress/1000),
+                            'iv_load_policy': 3,
+                            'origin': "https://music.pixelboop.net",
+                            'rel': 0,
+                            'widget_referrer': "https://music.pixelboop.net",
+                            'showinfo': 0,
+                            'fs': 0
+                        },
+                        events: {
+                            'onReady': onPlayerReady,
+                            'onStateChange': onPlayerStateChange
+                        }
+                    });
+    
+                    var buffering;
+                    function onPlayerStateChange(event) {
+    
+                        if (event.data == YT.PlayerState.BUFFERING) {
+                            clearTimeout(buffering)
+                            buffering = setTimeout(() => {
+                                sync()
+                                console.log("FINISHED BUFFERING--------------------------------")
+                            }, 5000);
+                        }
+    
+                        if (event.data == YT.PlayerState.PLAYING) {
+                            clearTimeout(buffering)
+                        }
                     }
-                    console.log("TIME"+Math.round(data.progress/1000))
-                player = new YT.Player('player', {
-                    height: '100%',
-                    width: '100%',
-                    videoId: id,
-                    playerVars: {
-                        'playsinline': 1,
-                        'mute': 1,
-                        'enablejsapi': 1,
-                        'disablekb': 1,
-                        'controls': 0,
-                        'start':Math.round(data.progress/1000),
-                        'iv_load_policy': 3,
-                        'origin': "https://music.pixelboop.net",
-                        'rel': 0,
-                        'widget_referrer': "https://music.pixelboop.net",
-                        'showinfo': 0,
-                        'fs': 0
-                    },
-                    events: {
-                        'onReady': onPlayerReady,
-                        'onStateChange': onPlayerStateChange
+                    function onPlayerReady(event) {
+                        console.log("START VIDEO")
+                        console.log("PLAYER IS READY!!!!!!!!!!!!!!!!!!!!!!!!!")
+    
+                        playerpromiseResolve()
+                        event.target.playVideo();
+                        sync()
                     }
-                });
 
-                var done = false
-                function onPlayerStateChange(event) {
-                    if (event.data == YT.PlayerState.PLAYING && !done) {
-                        //document.getElementById("backgroundImage").style = "backdrop-filter: blur(0px);"
-                      done = true;
-                        console.log("FINISHED BUFFERING--------------------------------")
-                        let startedTime = new Date()
-                        /* fetch('/api/progress?guild=' + getCookie("server").id).then(response => response.json())
-                .then(data => {
-                    let currentDate = new Date()
-                    let dif = (currentDate.getTime() - startedTime.getTime()) / 1000
-                    console.log("Difference in player vs bot time: " + dif)
-
-                    event.target.seekTo(data.progress / 1000 + dif, true)
-                    console.log('%c Seeking! ', 'background: #222; color: #bada55')
-                }) */
                     }
-                  }
-
-                  
-
-                function onPlayerReady(event) {
-                    console.log("START VIDEO")
-                    console.log("PLAYER IS READY!!!!!!!!!!!!!!!!!!!!!!!!!")
-
-                    playerpromiseResolve()
-                    event.target.playVideo();
-
-                    fetch('/api/progress?guild=' + getCookie("server").id).then(response => response.json())
-                .then(data => {
-                    let currentDate = new Date()
-                    let dif = (currentDate.getTime() - startedTime.getTime()) / 1000
-                    console.log("Difference in player vs bot time: " + dif)
-
-                    event.target.seekTo(data.progress / 1000 + dif, true)
-                    console.log('%c Seeking! ', 'background: #222; color: #bada55')
-                })
-                    
-                }
 
 
 
@@ -627,7 +630,8 @@ socket.on('queueUpdate', function (data) {
         scrollbacktimer = setTimeout(() => {
             console.log("SCROLL-BACK")
 
-            var songdiv = document.getElementsByClassName("currentSong")[0]
+            var songdiv = Array.from(songQueue.children)[data.currentIndex]
+            if (!songdiv) return;
             let topPos = songdiv.offsetTop
             let divheight = songdiv.clientHeight;
 
@@ -636,10 +640,47 @@ socket.on('queueUpdate', function (data) {
             songQueue.scrollTop = topPos - height + divheight / 2;
 
             document.getElementById("search").value = ""
-            var songdiv = Array.from(songQueue.children).find(c => Array.from(c.children).find(c => c.tagName == "A" && c.innerText.toLowerCase().startsWith(document.getElementById("search").value.toLowerCase().trim()))) || Array.from(songQueue.children).find(c => Array.from(c.children).find(c => c.tagName == "A" && c.innerText.toLowerCase().trim().includes(document.getElementById("search").value.toLowerCase().trim())))
             songdiv?.classList?.remove("currentSearch")
         }, 5000);
     }
+
+    document.getElementById("search").oninput = function (event) {
+        let songQueue = document.getElementById("songQueue")
+        var index = data.queue.findIndex(s=> `${s.title} ${s.author}`.toLowerCase().includes(document.getElementById("search").value.toLowerCase()))
+        if (!document.getElementById("search").value || index < 0) {
+            var songdiv = Array.from(songQueue.children)[data.currentIndex]
+            if (!songdiv) return;
+            let topPos = songdiv.offsetTop
+            let divheight = songdiv.clientHeight;
+
+            let height = songQueue.clientHeight
+            height = height / 2
+            songQueue.scrollTop = topPos - height + divheight / 2;
+            return document.getElementsByClassName("currentSearch")[0]?.classList?.remove("currentSearch");
+        }
+    var songdiv = Array.from(songQueue.children)[index]
+    console.log(index)
+    console.log(songdiv)
+    document.getElementsByClassName("currentSearch")[0]?.classList?.remove("currentSearch")
+    songdiv?.classList?.remove("currentSearch")
+    console.log(songdiv || "Cant find search thing")
+
+        songdiv.classList.add("currentSearch")
+
+        document.getElementById("search").onkeypress = function(event) {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              songdiv.click();
+            }
+          };
+
+    let topPos = songdiv.offsetTop;
+    let height = songQueue.clientHeight
+    let divheight = songdiv.clientHeight
+    height = height / 2
+    songQueue.scrollTop = topPos - height + divheight / 2;
+    songQueue.onscroll
+}
 
 })
 
@@ -651,6 +692,34 @@ function getDuration() {
             duration = data.progress
         })
 }
+
+var avaliableGuilds;
+const guildFetch = new Promise((resolve, reject) => {
+    fetch('/api/guilds')
+    .then(response => response.json())
+    .then(data => {
+        console.log("Fetched Initial Avaliable Guilds!")
+        avaliableGuilds = data
+        resolve();
+    }).catch(e => {
+        console.log(e)
+    })
+});
+socket.on('updateGuilds', function (data) {
+    var server = getCookie("server")
+    var updatedServer = data.find(g=> g.id == server.id)
+    avaliableGuilds = data
+
+    console.log("Updated Avaliable Guilds!")
+    if (!updatedServer) { //Server No Longer Exists
+        console.log("Guild no longer exists!")
+        openServerSelect()
+        return;
+    }
+
+    document.getElementById("serverbtn").textContent = updatedServer.name
+    setCookie("server", updatedServer)
+})
 
 let cachedGuild = getCookie("server")
 if (cachedGuild) {
@@ -668,47 +737,52 @@ if (cachedGuild) {
     openServerSelect()
 }
 
-function openServerSelect() {
-    fetch('/api/guilds')
-        .then(response => response.json())
-        .then(data => {
-            console.log("Fetched Guilds!")
-            let div = document.getElementById("servers")
 
-            while (div.firstChild) {
-                div.removeChild(div.lastChild);
-            }
 
-            if (data.includes(!getCookie("server"))) document.getElementById("serverbtn").textContent = "Unavaliable"
 
-            if (data.length == 1) {
-                setCookie("server", data[0])
-                populateSpotifyPlaylists()
-                populateUserInfo()
-            } else if (data.length == 0) {
-                let serverdiv = document.createElement("div")
-                let p = document.createElement("p")
-                let guildName = document.createTextNode("Join a server /w the musicbot")
-                p.appendChild(guildName);
-                serverdiv.append(p)
-                div.append(serverdiv)
-            } else {
-                data.forEach(guild => {
-                    let serverdiv = document.createElement("div")
-                    let p = document.createElement("p")
-                    let guildName = document.createTextNode(guild.name)
-                    p.appendChild(guildName);
-                    serverdiv.append(p)
-                    serverdiv.addEventListener("click", () => {
-                        setCookie("server", guild)
-                        changeGuild(guild)
-                    });
-                    div.append(serverdiv)
-                })
-            }
+async function openServerSelect() {
+    let serversDiv = document.getElementById("servers")
 
-            document.getElementById("serverSelect").style.display = "block"
+    if (getCookie("server")) document.getElementById("serverSelect").onclick = function() {
+        document.getElementById("serverSelect").style.display = "none"
+    }
+
+    await guildFetch;
+
+    while (serversDiv.firstChild) {
+        serversDiv.removeChild(serversDiv.lastChild);
+    }
+
+    if (avaliableGuilds.length == 1) {
+        setCookie("server", avaliableGuilds[0])
+        populateSpotifyPlaylists()
+        populateUserInfo()
+    } else if (avaliableGuilds.length == 0) {
+        let serverdiv = document.createElement("div")
+        let p = document.createElement("p")
+        p.appendChild("Join a server /w the musicbot");
+        serverdiv.append(p)
+        serversDiv.append(serverdiv)
+    } else {
+        var index = 0
+        avaliableGuilds.forEach(guild => {
+            if (guild.id == getCookie("server").id) return;
+            let serverdiv = document.createElement("div")
+            let p = document.createElement("p")
+            let guildName = document.createTextNode(guild.name)
+            p.appendChild(guildName);
+            serverdiv.append(p)
+            serverdiv.addEventListener("click", () => {
+                setCookie("server", guild)
+                changeGuild(guild)
+            });
+            serverdiv.style = `animation-delay: ${(index*0.1)}s`
+            serversDiv.append(serverdiv)
+            index++
         })
+    }
+
+    document.getElementById("serverSelect").style.display = "block"
 }
 function changeGuild(guild) {
     populateSpotifyPlaylists()
@@ -716,7 +790,6 @@ function changeGuild(guild) {
 
     document.getElementById("serverbtn").textContent = guild.name
     socket.emit("serverUpdate", guild.id)
-    console.log("SERVER UPDATE EMIT!")
     document.getElementById("serverSelect").style.display = "none"
 }
 function lerp(start, end, amt) {

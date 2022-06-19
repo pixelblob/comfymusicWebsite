@@ -41,7 +41,7 @@
 
     
 
-    <div class="lds-default" id="loader"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+    <!-- <div class="lds-default" id="loader"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div> -->
 
     <div id="player" class="videoBackground" allow="autoplay"></div>
 
@@ -114,11 +114,14 @@
         <div class="somekindofbar" style="pointer-events: none" id="prog"></div>
     </div>
 
-    <div class="nowplayingcontainer hide" id="nowplayingcontainer">
+    <div>
+      <div class="nowplayingcontainer hide" id="nowplayingcontainer">
         <div class="playSongs results custom-color" id="results"></div>
         <input placeholder="Search for a song!" class="playSongs" type="text" id="play" name="play"><button
             class="switchPlatformButton" id="switchPlatformBTN" type="button" onclick="switchPlatform()">Spotify</button>
+     </div>  
     </div>
+    
 
     <div class="songQueueWrap hide">
         <input placeholder="Search The Current Queue!" class="searchSongs" type="text" id="search" name="search">
@@ -144,6 +147,36 @@
 
 </body>
 
-<script src="index.js"></script>
+<script>
+
+    function getCookie(cname) {
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                try {
+                    return JSON.parse(c.substring(name.length, c.length));
+                } catch (e) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+        }
+        return "";
+    }
+    
+        let cols = document.getElementsByClassName('custom-color');
+        let color = getCookie("color");
+        for (i = 0; i < cols.length; i++) {
+            cols[i].style.backgroundColor = "#" + (Math.floor(color * 16777215).toString(16)).toString(16)
+            console.log(color)
+        }
+    </script>
+
+<script defer src="index.js"></script>
 
 </html>
