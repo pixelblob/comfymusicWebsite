@@ -287,7 +287,7 @@ width: 100%
 }
 
 
-.songQueue>div {
+.songQueue>div>div {
 	padding: 5px;
 	padding-top: 0px;
 	margin-bottom: 10px;
@@ -295,6 +295,7 @@ width: 100%
 	border: #f1f1f1;
 	border-style: solid;
 	margin: 5px;
+	position:relative
 }
 
 .currentSong {
@@ -307,8 +308,9 @@ width: 100%
 }
 
 .songLogo {
-	position: relative;
-	float: right;
+	position: absolute;
+	top:0px;
+	right: 0px
 }
 
 .currentSearch {
@@ -316,11 +318,11 @@ width: 100%
 	color: rgb(255, 22, 243);
 }
 
-.songQueue>div {
+.songQueue>div>div{
 	cursor: pointer;
 }
 
-.songQueue>div>span {
+.songQueue>div>div>span {
 	color: rgb(132, 56, 255);
 	text-decoration: none;
 	font-weight: bold;
@@ -328,13 +330,13 @@ width: 100%
 	display: block;
 }
 
-.songQueue>div>.songLogo>img {
-	height: 2em;
+.songQueue>div>div>.songLogo>img {
+	height: 1.2em;
 	cursor: grab;
 	text-align: center;
 }
 
-.songQueue>div>.songName {
+.songQueue>div>div>.songName {
 	text-decoration: none;
 	font-weight: bold;
 	max-width: 80%;
@@ -345,7 +347,7 @@ width: 100%
 	position: relative;
 }
 
-.songQueue>div:last-child {
+.songQueue>div>div:last-child {
 	margin-bottom: 0px;
 }
 
@@ -357,11 +359,18 @@ width: 100%
   border: none;
 }
 
+.songRemove {
+	position:absolute;
+	bottom:0px;
+	right:0px
+}
+
 .dropdown {
   position: absolute;
   display: inline-block;
   bottom: 0px;
   right: 0px;
+  display: none
 }
 
 .dropdown-content {

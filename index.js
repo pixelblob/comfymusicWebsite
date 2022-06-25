@@ -181,7 +181,6 @@ function search(altSearch) {
             while (results.firstChild) {
                 results.removeChild(results.lastChild);
             }
-
             document.onclick = function (e) {
                 document.getElementById("play").value = ""
                 while (results.firstChild) {
@@ -330,15 +329,78 @@ function pause(bool) {
 function sync() {
     fetch('/api/progress?guild=' + getCookie("server").id).then(response => response.json())
     .then(data => {
-    player.seekTo(data.progress/1000)
+        player.seekTo(data.progress/1000)
     })
-  }
+}
 
 
 clearInterval(progInterval)
 clearInterval(durationInterval)
 var playerExists = false
 var oldId
+
+window.addEventListener("dragover",function(e){
+    e.preventDefault();
+  });
+  window.addEventListener("drop",function(e){
+    var data = e.dataTransfer.getData("text");
+    if (data.match(validUrlRegex)) {
+        data.split("\n").forEach(data=>{
+            playUrl(data, getCookie("server").id)
+        })
+        
+        e.preventDefault(); 
+    } else if (e.dataTransfer.files.length > 0){
+        e.preventDefault(); 
+        var files = []
+
+    if (e.dataTransfer.items) {
+        // Use DataTransferItemList interface to access the file(s)
+        for (let i = 0; i < e.dataTransfer.items.length; i++) {
+          // If dropped items aren't files, reject them
+          if (e.dataTransfer.items[i].kind === 'file') {
+            const file = e.dataTransfer.items[i].getAsFile();
+            //console.log('... file[' + i + '].name = ' + file.name);
+            files.push(file)
+          }
+        }
+      } else {
+        // Use DataTransfer interface to access the file(s)
+        for (let i = 0; i < e.dataTransfer.files.length; i++) {
+          //console.log('... file[' + i + '].name = ' + e.dataTransfer.files[i].name);
+          files.push(e.dataTransfer.files[i])
+        }
+      }
+
+      if (files) {
+          console.log(files)
+          const data = new FormData();
+
+          for (const file of files) {
+              data.append('files[]', file, file.name);
+          }
+
+          fetch("https://music.pixelboop.net/api/upload?guild=" + getCookie("server").id, {
+              method: 'POST',
+              body: data,
+          })
+          
+      }
+    }
+
+    
+
+  });
+
+
+let songQueue = document.getElementById("songQueue")
+songQueue.addEventListener("dragstart", function(event) {
+    // The dataTransfer.setData() method sets the data type and the value of the dragged data
+    event.target.id = "dragging"
+    event.dataTransfer.setData("Text", event.target.id);
+    //event.target.style.visibility = "hidden"
+});
+
 socket.on('queueUpdate', function (data) {
     if (timeout) {
         console.log("clearing timeout")
@@ -346,6 +408,7 @@ socket.on('queueUpdate', function (data) {
     }
 
     console.log(data)
+    
 
     document.getElementById("following").textContent = data?.following?.nickname || data?.following?.displayName || "Follow"
 
@@ -357,23 +420,30 @@ socket.on('queueUpdate', function (data) {
 
     let songQueue = document.getElementById("songQueue")
 
+    var oldScroll = songQueue.scrollTop
+
     while (songQueue.firstChild) {
         songQueue.removeChild(songQueue.lastChild);
     }
 
-    let topPos
-    let divheight
     if (!data.queue) return;
     data.queue.forEach((song, index) => {
         let songdiv = document.createElement("div")
+        let wrapdiv = document.createElement("div")
         let a = document.createElement("a")
         let imgLink = document.createElement("a")
         let img = document.createElement("img")
         let span = document.createElement("span")
+        let spanX = document.createElement("span")
         let requesterName = document.createTextNode(`[${song?.requester?.displayName || ""}]`)
         span.appendChild(requesterName);
+
+        let X = document.createTextNode(`❌`)
+        spanX.appendChild(X);
+        spanX.classList.add('songRemove')
+
         song.title = song.title.replace(songNameRegex, " ")
-        let songName = document.createTextNode(`${song.title} ${`[${song.author}]` || ""}`)
+        let songName = document.createTextNode(`${song.title}`+(song.author ? `[${song.author}]` : ``))
         a.appendChild(songName);
         a.classList.add('songName')
         imgLink.classList.add('songLogo')
@@ -385,24 +455,95 @@ socket.on('queueUpdate', function (data) {
         imgLink.target = "_blank"
         songdiv.addEventListener("click", () => {
             goSong(index)
+            scrollTo(index)
+        })
+        spanX.addEventListener("click", (e) => {
+        e.stopPropagation()
+        console.log("DELETE! SONG---------------     "+index)
+
+fetch("/api/song?guild="+getCookie("server").id+"&index="+index, {
+                method: "DELETE",
+                headers: {'Content-Type': 'application/json'}, 
+              }).then(response => response.json()).then(data => {
+            console.log(data)
+        })
+
         })
         imgLink.append(img)
         songdiv.append(a)
         songdiv.append(imgLink)
+        songdiv.append(spanX)
         songdiv.append(span)
-        songQueue.append(songdiv)
+        songdiv.draggable = true
+        wrapdiv.ondragover = function(ev) {
+            if (ev.target.draggable) {
+                ev.preventDefault();
+            }
+        }
+        wrapdiv.addEventListener("dragenter", function(event) {
+            if (event.target.draggable) {
+                Array.from(event.target.children).forEach(child=>{
+                    child.style.pointerEvents = "none"
+                })
+                event.target.style.border = "3px dotted red";
+            }
+              
+          });
+        wrapdiv.addEventListener("dragleave", function(event) {
+            if (event.target.draggable) {
+                Array.from(event.target.children).forEach(child=>{
+                    child.style.pointerEvents = "auto"
+                })
+                event.target.style.border = "";
+            }
+              
+          });
+          wrapdiv.addEventListener("drop", function(event) {
+            event.preventDefault();
+            event.stopPropagation()
+            event.stopImmediatePropagation()
+            var data = event.dataTransfer.getData("text");
+            console.log("ID: ", data)
+            var children = Array.from(songQueue.children)
+            var draggedElement = document.getElementById(data)
+            var draggedElementIndex = children.indexOf(draggedElement.parentNode)
+            var dropIndex = children.indexOf(event.target.parentNode)
+            console.log("Index of dragged element: "+draggedElementIndex, "Index of drop position: "+dropIndex)
+
+            fetch("/api/insertQueue?guild="+getCookie("server").id+`&from=${draggedElementIndex}&index=${dropIndex}`, {
+                method: "POST",
+                headers: {'Content-Type': 'application/json'}, 
+              }).then(response => response.json().then(data => {
+            console.log(data)
+        }))
+
+            console.log(event.target.parentNode)
+            Array.from(event.target.children).forEach(child=>{
+                child.style.pointerEvents = "auto"
+            })
+            event.target.style.border = "";
+            //event.target.parentNode.appendChild(document.getElementById(data));
+
+            function insertBefore(newNode, existingNode) {
+                existingNode.parentNode.insertBefore(newNode, existingNode);
+            }
+            insertBefore(document.getElementById(data), event.target)
+            document.getElementById(data).style.visibility = "block"
+            document.getElementById(data).removeAttribute('id');
+          })
+        wrapdiv.ondrop = function(event) {
+            
+        }
+        wrapdiv.append(songdiv)
+        songQueue.append(wrapdiv)
         if (index == data.currentIndex) {
-            //let startedTime = new Date()
 
             YouTubeIframeAPIpromise.then(async (event) => {
                 console.log("Youtube player created!")
+                if (!song.url.match('v=([a-zA-Z0-9_-]+)&?')) return console.log("Not YT vid")
                 let id = song.url.match('v=([a-zA-Z0-9_-]+)&?')[1];
 
-                let startedTime = new Date()
-
-                fetch('/api/progress?guild=' + getCookie("server").id).then(response => response.json())
-                .then(data => {
-
+                fetch('/api/progress?guild=' + getCookie("server").id).then(response => response.json()).then(data => {
                     createPlayer()
 
                     function createPlayer() {
@@ -412,28 +553,41 @@ socket.on('queueUpdate', function (data) {
                                 console.log('not visible');
     
                                 if (player != null) {
-                                    if (id == oldId) return;
-                                    var oldId = id
-                                    console.log("DESTROYING PLAYER!")
-                                    player.destroy();
-                                    player = null;
+                                    //if (id == oldId) return;
+                                    //var oldId = id
+                                    console.log("PAUSING PLAYER!")
+                                    player.pauseVideo()
+                                    //player.destroy();
+                                    //player = null;
                                 }
     
                             } else {
                                 console.log('is visible');
-                                createPlayer()
+                                //oldId = null
+                                //createPlayer()
+                                console.log("UNPAUSING PLAYER!")
+                                player.playVideo()
+                                sync()
                             }
                         };
+
+                        console.log(id, oldId, id == oldId)
     
-                        if (player != null) {
-                            if (id == oldId) return;
-                            var oldId = id
-                            console.log("DESTROYING PLAYER!")
+                        if (player != null && oldId != id) {
+                            /* console.log("DESTROYING PLAYER!")
                             player.destroy();
-                            player = null;
+                            player = null; */
+                            console.log("EEEEEEEEEEEEEEEEEEEE-----------------------------------------------")
+                            player.loadVideoById(id)
+                            oldId = id
+                            return;
                         }
-                        console.log("TIME"+Math.round(data.progress/1000))
-                    player = new YT.Player('player', {
+
+                        
+                        
+                        if (!player) {
+                            oldId = id
+                            player = new YT.Player('player', {
                         height: '100%',
                         width: '100%',
                         videoId: id,
@@ -455,7 +609,9 @@ socket.on('queueUpdate', function (data) {
                             'onReady': onPlayerReady,
                             'onStateChange': onPlayerStateChange
                         }
-                    });
+                            });
+                        }
+                    
     
                     var buffering;
                     function onPlayerStateChange(event) {
@@ -488,12 +644,6 @@ socket.on('queueUpdate', function (data) {
             })
 
             })
-
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: song.title,
-                artist: song.author,
-                album: song.requester.displayName
-              });
 
             songdiv.classList.add("currentSong")
             topPos = songdiv.offsetTop;
@@ -620,27 +770,31 @@ socket.on('queueUpdate', function (data) {
         }
     })
 
-    let height = songQueue.clientHeight
-    height = height / 2
-    songQueue.scrollTop = topPos - height + divheight / 2;
+    songQueue.scrollTop = oldScroll
+
+    scrollTo(data.currentIndex)
+
+    function scrollTo(index) {
+        console.log("SCROLL-BACK")
+
+        var songdiv = Array.from(songQueue.children)[index]
+        if (!songdiv) return;
+        let topPos = songdiv.offsetTop
+        let divheight = songdiv.clientHeight;
+
+        let height = songQueue.clientHeight
+        height = height / 2
+        songQueue.scrollTop = topPos - height + divheight / 2;
+
+        document.getElementById("search").value = ""
+        songdiv?.classList?.remove("currentSearch")
+    }
 
     let scrollbacktimer
     songQueue.onscroll = function (event) {
         clearTimeout(scrollbacktimer)
         scrollbacktimer = setTimeout(() => {
-            console.log("SCROLL-BACK")
-
-            var songdiv = Array.from(songQueue.children)[data.currentIndex]
-            if (!songdiv) return;
-            let topPos = songdiv.offsetTop
-            let divheight = songdiv.clientHeight;
-
-            let height = songQueue.clientHeight
-            height = height / 2
-            songQueue.scrollTop = topPos - height + divheight / 2;
-
-            document.getElementById("search").value = ""
-            songdiv?.classList?.remove("currentSearch")
+            scrollTo(data.currentIndex)
         }, 5000);
     }
 
@@ -788,6 +942,15 @@ function changeGuild(guild) {
     populateSpotifyPlaylists()
     populateUserInfo()
 
+    if (player != null) {
+        player.destroy();
+        player = null;
+    }
+
+    clearInterval(progInterval)
+    clearInterval(durationInterval)
+    document.getElementById("prog").style.width = "0px"
+
     document.getElementById("serverbtn").textContent = guild.name
     socket.emit("serverUpdate", guild.id)
     document.getElementById("serverSelect").style.display = "none"
@@ -801,8 +964,11 @@ function populateSpotifyPlaylists() {
     fetch('/api/spotifyPlaylists?guild=' + getCookie("server").id)
         .then(response => response.json())
         .then(data => {
-            if (!data.items) return console.log("No spotify playlists found!")
             let spotifyPlaylist = document.getElementById("spotifyPlaylist")
+            if (data.items.length == 0) return document.getElementById("spDrop").style.display = "none"
+
+            document.getElementById("spDrop").style.display = "block"
+            
             while (spotifyPlaylist.firstChild) {
                 spotifyPlaylist.removeChild(spotifyPlaylist.lastChild);
             }
@@ -811,6 +977,7 @@ function populateSpotifyPlaylists() {
             let divheight
             data.items.forEach((playlist, index) => {
                 let songdiv = document.createElement("div")
+                
                 let a = document.createElement("a")
                 let span = document.createElement("span")
                 let songName = document.createTextNode(playlist.name)
@@ -840,7 +1007,6 @@ function setCookie(cname, cvalue, exdays) {
     let expires = "expires=" + d.toUTCString();
     document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 }
-
 function getCookie(cname) {
     let name = cname + "=";
     let decodedCookie = decodeURIComponent(document.cookie);
